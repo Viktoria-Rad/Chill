@@ -35,7 +35,7 @@ public class FileIO {
         File file = new File(path);
         try {
             Scanner scan = new Scanner(file);
-            scan.nextLine(); // skip header "Name, Score"
+            //scan.nextLine(); // skip header "Name, Score"
 
             while (scan.hasNextLine()) {
                 String line = scan.nextLine();   //  "Egon, 1000000"
