@@ -1,16 +1,18 @@
 import utils.FileIO;
 import utils.TextUI;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 
 public class StreamingService {
     FileIO fileIO = new FileIO();
     TextUI textUI = new TextUI();
     ArrayList<User> users = new ArrayList<>();
+    ArrayList<Movie> movies = new ArrayList<>();
+
     boolean running = true;
     User loggedInUser;
 
-    ArrayList<Movie> movies = new ArrayList<>();
 
     public void loadUsers(){
     ArrayList<String>data = fileIO.readData("data/users.csv");
@@ -21,42 +23,32 @@ public class StreamingService {
             users.add(new User(values [0].trim(), values[1].trim()));
         }
     }
+        System.out.println("Indlæste brugere: " + users.size());
     }
 
     public void createMovies() {
-
         ArrayList<String> data = fileIO.readData("data/film.csv");
+        movies.clear();
+
         for (String s : data) {
             try {
                 String[] values = s.split(";");
-                String title = values[0];
+                String title = values[0].trim();
                 int yearOfRealise = Integer.parseInt(values[1].trim());
                 String[] categories = values[2].trim().split(",");
                 String ratingStr = values[3].trim().replace(",", ".");
                 double rating = Double.parseDouble(ratingStr); //Double.parseDouble(values[3]);
                 movies.add(new Movie(title, yearOfRealise, categories, rating));
-            } catch (NumberFormatException e) {
+            } catch (Exception e) {
                 System.out.println("Fejl i indlæsning af film");
             }
         }
+        System.out.println("Der er indlæst" + movies.size() + "film.");
     }
-
-    public void showMenu() {
-        textUI.displayMsg("Indtæst nummer af film");
-        int counter = 0;
-        for (Movie m : movies) {
-            counter++;
-            System.out.println(counter + ". " + m.toString());
-        }
-        int userInput = textUI.promptNumeric("");
-        Movie m = movies.get(userInput - 1);
-        m.playMovie();
-    }
-
 
     public void start() {
         textUI.displayMsg("***********Velkomme to CHILL***************");
-        createUser();
+        createMovies();
         loadUsers();
         running();
     }
@@ -79,22 +71,25 @@ public class StreamingService {
                     textUI.displayMsg("Tak for besøge!");
                     running = false;break;
                 default:
-                    textUI.displayMsg("Forket valg, prøv igen");
+                    textUI.displayMsg("Forkert valg, prøv igen");
             }
         }
-        return running = false;
+        return false;
     }
+
+
     private int safeInput() {
         try {
             return textUI.promptNumeric("Vælg et nummer");
         } catch (NumberFormatException e) {
-            textUI.displayMsg("Ugyldig valg, skriv et tal");
+            textUI.displayMsg("Ugyldig input, skriv et tal");
             return -1;
         }
     }
     private void login() {
-        String userName = textUI.promptText("Indtæst brugenavn");
-        String password = textUI.promptText("Indtæst adganskode");
+        String userName = textUI.promptText("Indtæst brugenavn:");
+        String password = textUI.promptText("Indtæst adganskode:");
+
         for (User u : users) {
             if (u.getUsername().equals(userName) && u.getPassword().equals(password)) {
                 loggedInUser = u;
@@ -103,7 +98,9 @@ public class StreamingService {
                 return;
             }
         }
+        textUI.displayMsg("Forkert brugenavn eller adgangskode.");
     }
+
     private void createUser() {
         String userName = textUI.promptText("Vælg brugenavn");
         String password = textUI.promptText("Vælg adganskode");
@@ -111,37 +108,26 @@ public class StreamingService {
         saveUsers();
         textUI.displayMsg("Bruger oprettet");
     }
+
     private void saveUsers() {
         ArrayList<String> usersAsString = new ArrayList<>();
         for(User u: users){
             usersAsString.add(u.toString());
         }
-       fileIO.saveData(usersAsString,"data/users.csv", "username, password");
-
+        fileIO.saveData(usersAsString,"data/users.csv", "username, password");
     }
 
-    public void searchMovieByCategory() {
-        String input  = textUI.promptText("Skriv kategory-navn(fx drama, romance, war, family, scifi )").toLowerCase();
-        textUI.displayMsg("Vis alle" + input + " film");
+    /*public void showMenu() {
+        textUI.displayMsg("Indtæst nummer af film");
         int counter = 0;
         for (Movie m : movies) {
-            for (String c : m.getCategories()) {
-                if (c.trim().equalsIgnoreCase(input)) {
-                    counter++;
-                    System.out.println(counter + ". " + m.toString());
-                    break;
-                }
-            }
+            counter++;
+            System.out.println(counter + ". " + m.toString());
         }
-        if( counter > 0){
-            int userInput = textUI.promptNumeric("Valg en film");
-            Movie m = movies.get(userInput - 1);
-            m.playMovie();
-        }else{
-            textUI.displayMsg("Vi fandt ingen film");
-        }
-
-    }
+        int userInput = textUI.promptNumeric("");
+        Movie m = movies.get(userInput - 1);
+        m.playMovie();
+    }*/
 
     public void mainMenu() {
         boolean loggedIn = true;
@@ -168,26 +154,46 @@ public class StreamingService {
                 case 5:
                     showWatchLater();break;
                 case 6:
-                    if(loggedInUser == null){
-                      textUI.displayMsg("Du skal logge ind først");
-                      return;
-                    }
-                    loggedIn = false;
+                    loggedInUser = null;
+                    loggedIn= false;
                     textUI.displayMsg("Du er nu logged ud");break;
-
                 default:
                     textUI.displayMsg("Ugyldig valg, prøv igen");
             }
         }
     }
 
-    private void showWatchLater() {textUI.displayMsg("Ingen film i din `Se senere` endnu");
+    public void searchMovieByCategory() {
+        String input  = textUI.promptText("Skriv kategory-navn(fx drama, romance, war, family, scifi )").toLowerCase();
+        textUI.displayMsg("Vis alle" + input + " film");
+        int counter = 0;
+
+        for (Movie m : movies) {
+            for (String c : m.getCategories()) {
+                if (c.trim().equalsIgnoreCase(input)) {
+                    counter++;
+                    System.out.println(counter + ". " + m.toString());
+                    break;
+                }
+            }
+        }
+        if( counter > 0){
+            int userInput = textUI.promptNumeric("Valg en film");
+            if(userInput > 0 && userInput <= movies.size()){
+            Movie m = movies.get(userInput - 1);
+            m.playMovie();
+        }else {
+                textUI.displayMsg("Ugyldig valg.");
+            }
+        } else {
+            textUI.displayMsg("Vi fandt ingen film i den kategori.");
+        }
     }
-    private void showWatched() {textUI.displayMsg("Ingen sete film endnu");
-    }
+
     private void searchMovie() {
         String title = textUI.promptText("Skriv filmtitel du søger: ");
         boolean found = false;
+
         for (Movie m: movies){
             if(m.getTitle().toLowerCase().contains(title.toLowerCase())){
                 System.out.println(m);
@@ -196,6 +202,12 @@ public class StreamingService {
         }
         if (!found) textUI.displayMsg("Ingen film fundet med den titel.");
     }
+
+    private void showWatchLater() {textUI.displayMsg("Ingen film i din `Se senere` endnu");
+    }
+    private void showWatched() {textUI.displayMsg("Ingen sete film endnu");
+    }
+
 
     private void trendingMovie() {
         textUI.displayMsg("Trending nu: ");
